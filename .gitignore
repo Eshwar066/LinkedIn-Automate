@@ -1,0 +1,9 @@
+venv/
+__pycache__/
+browser_data/
+.env
+linkedin_state.json
+resume_profile.json
+qa_cache.json
+*.png
+*.html

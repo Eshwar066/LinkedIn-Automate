@@ -1,0 +1,12 @@
+{
+  "role": "Generative AI Developer",
+  "applicants": 100,
+  "query_template": "{role} hiring under {applicants} applicants posted in the past 24 hours Easy Apply",
+  "resume_path": "C:\\Users\\Rishi Kumar\\Downloads\\Rishi_Kumar_Resume.pdf",
+  "location": "India",
+  "past_24_hours": true,
+  "max_applications": 5,
+  "gemini_model": "gemini-2.5-flash",
+  "keywords_mode": "role",
+  "headless": false
+}
