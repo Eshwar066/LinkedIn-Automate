@@ -157,12 +157,12 @@ def open_jobs_search(page, keywords, config):
         page.wait_for_load_state("networkidle", timeout=20000)
     except Exception:
         pass
-    page.wait_for_timeout(3000)
+    page.wait_for_timeout(config.get("page_load_wait_ms", 3000))
 
     if "/jobs/search-results/" in page.url:
         print("LinkedIn redirected to the SDUI results page; forcing the classic list.")
         page.goto(url)
-        page.wait_for_timeout(3000)
+        page.wait_for_timeout(config.get("page_load_wait_ms", 3000))
 
     print(f"Jobs URL: {page.url}")
 

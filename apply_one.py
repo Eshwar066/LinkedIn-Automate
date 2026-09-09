@@ -111,7 +111,7 @@ def main():
             page.wait_for_load_state("networkidle", timeout=20000)
         except Exception:
             pass
-        page.wait_for_timeout(3000)
+        page.wait_for_timeout(config.get("page_load_wait_ms", 3000))
 
         ctx = job_context(page)
         print(f"Job: {ctx['title']!r} @ {ctx['company']!r} | applicants={applicant_count(page)}")
@@ -209,7 +209,7 @@ def main():
                 print(f"  [validation error] {err}")
 
             if action == "submit":
-                page.wait_for_timeout(3000)
+                page.wait_for_timeout(config.get("page_load_wait_ms", 3000))
                 if application_sent(page) or find_modal(page) is None:
                     print("\nApplication submitted.")
                     dismiss_modal(page)

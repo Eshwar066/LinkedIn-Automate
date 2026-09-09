@@ -1,3 +1,4 @@
+import json
 import os
 import sys
 
@@ -52,9 +53,15 @@ def main():
 
         context.on("page", on_page)
 
+        config = {}
+        if os.path.exists("config.json"):
+            with open("config.json", "r", encoding="utf-8") as f:
+                config = json.load(f)
+
         page = context.new_page()
         print("Opening LinkedIn...")
         page.goto("https://www.linkedin.com/home")
+        page.wait_for_timeout(config.get("page_load_wait_ms", 3000))
 
         print("\nLog in to LinkedIn in the browser window (Google sign-in should work now).")
         input("Press Enter here once you're logged in...\n")

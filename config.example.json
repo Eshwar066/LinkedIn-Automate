@@ -8,6 +8,7 @@
   "local_model": "llama3.2:1b",
   "location": "India",
   "max_applications": 50,
+  "page_load_wait_ms": 3000,
   "past_24_hours": true,
   "query_template": "{role} hiring under {applicants} applicants posted in the past 24 hours Easy Apply",
   "resume_path": "C:\\\\Users\\\\YourName\\\\Documents\\\\resume.pdf",
