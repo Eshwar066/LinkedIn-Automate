@@ -11,7 +11,7 @@ import urllib.parse
 from playwright.sync_api import sync_playwright
 
 from easy_apply import apply_to_current_job, dismiss_modal
-from gemini_client import Gemini
+from gemini_client import Gemini, GeminiError
 from qa_store import QAStore
 from resume_profile import get_or_build_profile
 
@@ -264,7 +264,7 @@ def run(config):
         print("Set 'resume_path' in config.json to your resume PDF.")
         sys.exit(1)
 
-    gemini = Gemini(config.get("gemini_model"))
+    gemini = Gemini(config)
     profile = get_or_build_profile(resume_path, gemini=gemini)
     store = QAStore()
     print(f"Loaded {len(store)} cached question/answer pair(s).")
@@ -348,6 +348,8 @@ def run(config):
 
             try:
                 sent = apply_to_current_job(page, gemini, profile, ctx, store=store)
+            except GeminiError:
+                raise
             except Exception as e:
                 print(f"  [error] {e}")
                 page.screenshot(path=f"error_apply_{i + 1}.png")

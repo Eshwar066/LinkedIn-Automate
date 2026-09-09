@@ -1,6 +1,6 @@
 {
   "applicants": 100,
-  "gemini_model": "gemini-3.99-flash-lite",
+  "gemini_model": "gemini-2.5-flash",
   "headless": false,
   "keywords_mode": "role",
   "llm_provider": "gemini",
@@ -10,6 +10,6 @@
   "max_applications": 50,
   "past_24_hours": true,
   "query_template": "{role} hiring under {applicants} applicants posted in the past 24 hours Easy Apply",
-  "resume_path": "C:\\Users\\Rishi Kumar\\Downloads\\Rishi_Kumar_Resume.pdf",
+  "resume_path": "C:\\\\Users\\\\YourName\\\\Documents\\\\resume.pdf",
   "role": "Django Backend Developer"
 }

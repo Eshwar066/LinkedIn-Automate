@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LinkedIn Apply</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body class="bg-gray-50 text-gray-900 font-sans">
+    <div class="flex h-screen">
+        <aside class="w-64 bg-slate-900 text-white flex flex-col">
+            <div class="p-6 border-b border-slate-700">
+                <h1 class="text-xl font-bold">LinkedIn Apply</h1>
+                <p class="text-xs text-slate-400">Local automation dashboard</p>
+            </div>
+            <nav class="flex-1 overflow-y-auto p-4 space-y-2">
+                <button data-tab="dashboard" class="nav-btn w-full text-left px-4 py-3 rounded hover:bg-slate-700 active">Dashboard</button>
+                <button data-tab="config" class="nav-btn w-full text-left px-4 py-3 rounded hover:bg-slate-700">Config</button>
+                <button data-tab="env" class="nav-btn w-full text-left px-4 py-3 rounded hover:bg-slate-700">Env</button>
+                <button data-tab="resume" class="nav-btn w-full text-left px-4 py-3 rounded hover:bg-slate-700">Resume Profile</button>
+                <button data-tab="qa" class="nav-btn w-full text-left px-4 py-3 rounded hover:bg-slate-700">QA Cache</button>
+                <button data-tab="logs" class="nav-btn w-full text-left px-4 py-3 rounded hover:bg-slate-700">Logs</button>
+                <button data-tab="guide" class="nav-btn w-full text-left px-4 py-3 rounded hover:bg-slate-700">Guide</button>
+            </nav>
+        </aside>
+        <main class="flex-1 p-8 overflow-auto">
+            <section id="dashboard" class="tab-panel">
+                <h2 class="text-2xl font-bold mb-6">Dashboard</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-white p-6 rounded-xl shadow">
+                        <h3 class="text-lg font-semibold mb-2">LinkedIn Login</h3>
+                        <p class="text-sm text-gray-600 mb-4">Run the headed login to cache the session, then click "Login Successful".</p>
+                        <button id="btn-login" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Start Login</button>
+                        <button id="btn-login-done" class="ml-2 bg-emerald-600 text-white px-4 py-2 rounded hover:bg-emerald-700">Login Successful</button>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow">
+                        <h3 class="text-lg font-semibold mb-2">Search & Apply</h3>
+                        <p class="text-sm text-gray-600 mb-4">Run the search and Easy Apply pipeline.</p>
+                        <button id="btn-search" class="bg-green-600 text-white px-4 py-2 rounded disabled:bg-gray-300 disabled:cursor-not-allowed" disabled>Start Search</button>
+                    </div>
+                </div>
+                <div id="status-card" class="mt-8 bg-white p-6 rounded-xl shadow hidden">
+                    <h3 class="text-lg font-semibold mb-2">Status</h3>
+                    <p id="status-text" class="text-sm text-gray-600 mb-2">Idle</p>
+                    <div id="spinner" class="hidden flex items-center gap-2 text-sm text-blue-600">
+                        <div class="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                        Running...
+                    </div>
+                </div>
+                <div id="error-banner" class="mt-6 hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                    <strong class="font-bold">Error!</strong>
+                    <span id="error-text" class="ml-2">The last task failed. Check the Logs tab for details.</span>
+                </div>
+            </section>
+
+            <section id="config" class="tab-panel hidden">
+                <h2 class="text-2xl font-bold mb-4">Config</h2>
+                <p class="text-sm text-gray-600 mb-4">Edit <code>config.json</code>. Save to apply.</p>
+                <textarea id="config-editor" class="w-full h-96 p-4 font-mono text-sm border rounded-lg mb-4"></textarea>
+                <button id="btn-save-config" class="bg-slate-900 text-white px-4 py-2 rounded hover:bg-slate-700">Save Config</button>
+            </section>
+
+            <section id="env" class="tab-panel hidden">
+                <h2 class="text-2xl font-bold mb-4">Environment</h2>
+                <p class="text-sm text-gray-600 mb-4">Edit <code>.env</code>. Save to apply.</p>
+                <textarea id="env-editor" class="w-full h-96 p-4 font-mono text-sm border rounded-lg mb-4"></textarea>
+                <button id="btn-save-env" class="bg-slate-900 text-white px-4 py-2 rounded hover:bg-slate-700">Save Env</button>
+            </section>
+
+            <section id="resume" class="tab-panel hidden">
+                <h2 class="text-2xl font-bold mb-4">Resume Profile</h2>
+                <p class="text-sm text-gray-600 mb-4">Edit <code>resume_profile.json</code>.</p>
+                <textarea id="resume-editor" class="w-full h-96 p-4 font-mono text-sm border rounded-lg mb-4"></textarea>
+                <button id="btn-save-resume" class="bg-slate-900 text-white px-4 py-2 rounded hover:bg-slate-700">Save Resume Profile</button>
+            </section>
+
+            <section id="qa" class="tab-panel hidden">
+                <h2 class="text-2xl font-bold mb-4">QA Cache</h2>
+                <p class="text-sm text-gray-600 mb-4">Edit <code>qa_cache.json</code>.</p>
+                <textarea id="qa-editor" class="w-full h-96 p-4 font-mono text-sm border rounded-lg mb-4"></textarea>
+                <button id="btn-save-qa" class="bg-slate-900 text-white px-4 py-2 rounded hover:bg-slate-700">Save QA Cache</button>
+            </section>
+
+            <section id="logs" class="tab-panel hidden">
+                <h2 class="text-2xl font-bold mb-4">Logs</h2>
+                <pre id="log-view" class="w-full h-[35vh] p-4 bg-slate-900 text-green-400 text-xs font-mono rounded-lg overflow-auto mb-4">No logs yet.</pre>
+                <div class="flex items-center justify-between mb-2">
+                    <h3 class="text-lg font-semibold">Ollama Logs</h3>
+                    <button id="btn-ollama-logs" class="bg-slate-900 text-white px-4 py-2 rounded hover:bg-slate-700">Load Ollama Logs</button>
+                </div>
+                <pre id="ollama-log-view" class="w-full h-[35vh] p-4 bg-slate-900 text-blue-300 text-xs font-mono rounded-lg overflow-auto">Click "Load Ollama Logs" to fetch.</pre>
+            </section>
+
+            <section id="guide" class="tab-panel hidden">
+                <h2 class="text-2xl font-bold mb-4">How to use</h2>
+                <ol class="list-decimal pl-5 space-y-3 text-sm text-gray-700">
+                    <li><strong>Create a Gemini API key</strong> at <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-blue-600 underline">Google AI Studio</a>.</li>
+                    <li><strong>Build your resume JSON.</strong> Ask Gemini to create a JSON profile from your resume, then paste it into the <em>Resume Profile</em> tab. Make sure it includes the expected fields (full_name, email, phone, skills, etc.).</li>
+                    <li><strong>Set your API key.</strong> Go to the <em>Env</em> tab and add <code>GEMINI_API_KEY=your_key</code>.</li>
+                    <li><strong>Fill the Config.</strong> In the <em>Config</em> tab set your role, location, resume path, applicant cap, and LLM provider (<code>gemini</code> or <code>local</code>).</li>
+                    <li><strong>Log in to LinkedIn.</strong> Click <em>Start Login</em>. Sign in with your LinkedIn username and password in the browser. When done, return and click <em>Login Successful</em>.</li>
+                    <li><strong>Start the search.</strong> Click <em>Start Search</em> to run the application pipeline.</li>
+                </ol>
+            </section>
+        </main>
+    </div>
+    <script src="/static/app.js"></script>
+</body>
+</html>

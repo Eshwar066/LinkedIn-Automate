@@ -1,0 +1,11 @@
+.nav-btn.active {
+    background-color: #334155;
+}
+
+.tab-panel {
+    max-width: 900px;
+}
+
+#log-view {
+    white-space: pre-wrap;
+}

@@ -89,7 +89,7 @@ def main():
     profile = None
     store = QAStore()
     if not args.no_fill:
-        gemini = Gemini(config.get("gemini_model"))
+        gemini = Gemini(config)
         profile = get_or_build_profile(config["resume_path"], gemini=gemini)
 
     with sync_playwright() as p:

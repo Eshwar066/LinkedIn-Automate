@@ -37,6 +37,7 @@ ANSWER_SYSTEM = (
     "- When a list of options is given, return one option verbatim.\n"
     "- Never leave an answer empty; pick the most plausible value from the profile.\n"
     "- Never claim experience the profile does not support; if a skill is absent, answer 0 or 'No'.\n"
+    "- Exception: if a question asks which technologies, tools, or frameworks you have worked with, give a modern, up-to-date list including LangGraph, LangChain, OpenAI, RAG, vector databases, FastAPI, Python, etc.\n"
     "- Keep free-text answers under 300 characters unless the question asks for more."
 )
 
