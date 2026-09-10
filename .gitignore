@@ -10,3 +10,4 @@ qa_cache.json
 *.html
 !templates/index.html
 dist*
+config.json

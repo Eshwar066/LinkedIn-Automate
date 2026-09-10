@@ -93,11 +93,14 @@ class Gemini:
             config.system_instruction = system
         if json:
             config.response_mime_type = "application/json"
-        response = self.client.models.generate_content(
-            model=self.model,
-            contents=prompt,
-            config=config,
-        )
+        try:
+            response = self.client.models.generate_content(
+                model=self.model,
+                contents=prompt,
+                config=config,
+            )
+        except Exception as e:
+            raise GeminiError(f"Gemini API call failed: {e}") from e
         return (response.text or "").strip()
 
     def _local_generate(self, prompt, system=None, temperature=0.2, json=False):
@@ -124,10 +127,12 @@ class Gemini:
                 f"{self.base_url}/api/chat", json=payload, timeout=(10, None)
             )
             resp.raise_for_status()
+            data = resp.json()
+            text = (data.get("message", {}).get("content", "")).strip()
         except requests.RequestException as e:
             raise GeminiError(f"Local LLM call failed: {e}")
-        data = resp.json()
-        text = (data.get("message", {}).get("content", "")).strip()
+        except Exception as e:
+            raise GeminiError(f"Local LLM returned an invalid response: {e}") from e
         print(f"[local LLM raw] {text[:2000]}")
         return text
 
