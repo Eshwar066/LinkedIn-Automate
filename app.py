@@ -14,6 +14,7 @@ ENV_PATH = BASE_DIR / ".env"
 RESUME_PROFILE_PATH = BASE_DIR / "resume_profile.json"
 QA_CACHE_PATH = BASE_DIR / "qa_cache.json"
 STATE_PATH = BASE_DIR / "linkedin_state.json"
+LOGIN_DONE_FLAG = BASE_DIR / "login_done.flag"
 
 app = Flask(__name__)
 
@@ -150,9 +151,17 @@ def status():
 
 @app.route("/api/login", methods=["POST"])
 def start_login():
+    if LOGIN_DONE_FLAG.exists():
+        LOGIN_DONE_FLAG.unlink()
     python = sys.executable
     ok = runner.start("login", [python, "linkedin_login.py"])
     return jsonify({"started": ok, "running": not ok})
+
+
+@app.route("/api/login/confirm", methods=["POST"])
+def confirm_login():
+    LOGIN_DONE_FLAG.touch(exist_ok=True)
+    return jsonify({"ok": True})
 
 
 @app.route("/api/search", methods=["POST"])

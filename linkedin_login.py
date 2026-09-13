@@ -1,6 +1,7 @@
 import json
 import os
 import sys
+import time
 
 from playwright.sync_api import sync_playwright
 
@@ -64,7 +65,13 @@ def main():
         page.wait_for_timeout(config.get("page_load_wait_ms", 3000))
 
         print("\nLog in to LinkedIn in the browser window (Google sign-in should work now).")
-        input("Press Enter here once you're logged in...\n")
+        print("Click 'Login Successful' in the app when you are done.")
+
+        while not os.path.exists("login_done.flag"):
+            time.sleep(0.5)
+
+        if os.path.exists("login_done.flag"):
+            os.remove("login_done.flag")
 
         try:
             context.storage_state(path="linkedin_state.json")

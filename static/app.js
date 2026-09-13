@@ -145,12 +145,19 @@
     }
 
     async function confirmLogin() {
-        const data = await getJSON('/api/login/status');
-        if (data.logged_in) {
-            alert('Login confirmed. Search is now enabled.');
-        } else {
-            alert('Login not detected. Complete the browser login first.');
+        await postJSON('/api/login/confirm', {});
+
+        for (let i = 0; i < 20; i++) {
+            await new Promise(r => setTimeout(r, 1000));
+            const data = await getJSON('/api/login/status');
+            if (data.logged_in) {
+                alert('Login confirmed. Search is now enabled.');
+                await checkLoginStatus();
+                return;
+            }
         }
+
+        alert('Login not detected. Complete the browser login first.');
         await checkLoginStatus();
     }
 
