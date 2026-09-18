@@ -1,4 +1,4 @@
-"""Thin wrapper around the Gemini API used for resume parsing and answering form questions."""
+"""Thin wrapper around the Gemini/OpenRouter API used for resume parsing and answering form questions."""
 
 import json
 import os
@@ -12,6 +12,7 @@ from google.genai import types
 load_dotenv()
 
 DEFAULT_MODEL = "gemini-2.5-flash"
+DEFAULT_OPENROUTER_MODEL = "openai/gpt-4o-mini"
 DEFAULT_LOCAL_BASE = "http://localhost:11434"
 CONFIG_PATH = "config.json"
 
@@ -44,6 +45,19 @@ class Gemini:
             self.base_url = config.get("local_base_url", DEFAULT_LOCAL_BASE).rstrip("/")
             self.model = config.get("local_model", "qwen2.5:14b")
             self._check_local()
+        elif self.provider == "openrouter":
+            api_key = os.getenv("OPENROUTER_API_KEY")
+            if not api_key:
+                raise GeminiError(
+                    "OPENROUTER_API_KEY not set. Copy .env.example to .env and add your key."
+                )
+            self.api_key = api_key
+            self.base_url = "https://openrouter.ai/api/v1"
+            self.model = (
+                config.get("openrouter_model")
+                or os.getenv("OPENROUTER_MODEL")
+                or DEFAULT_OPENROUTER_MODEL
+            )
         else:
             api_key = os.getenv("GEMINI_API_KEY")
             if not api_key:
@@ -78,11 +92,15 @@ class Gemini:
     def generate(self, prompt, system=None, temperature=0.2):
         if self.provider == "local":
             return self._local_generate(prompt, system=system, temperature=temperature, json=False)
+        if self.provider == "openrouter":
+            return self._openrouter_generate(prompt, system=system, temperature=temperature, json=False)
         return self._gemini_generate(prompt, system=system, temperature=temperature, json=False)
 
     def generate_json(self, prompt, system=None, temperature=0.1):
         if self.provider == "local":
             text = self._local_generate(prompt, system=system, temperature=temperature, json=True)
+        elif self.provider == "openrouter":
+            text = self._openrouter_generate(prompt, system=system, temperature=temperature, json=True)
         else:
             text = self._gemini_generate(prompt, system=system, temperature=temperature, json=True)
         return _parse_json(text)
@@ -102,6 +120,40 @@ class Gemini:
         except Exception as e:
             raise GeminiError(f"Gemini API call failed: {e}") from e
         return (response.text or "").strip()
+
+    def _openrouter_generate(self, prompt, system=None, temperature=0.2, json=False):
+        messages = []
+        if system:
+            messages.append({"role": "system", "content": system})
+        if json:
+            json_instr = "You must respond with ONLY a valid JSON object or array. No markdown, no explanations, no extra text."
+            messages.append({"role": "user", "content": f"{prompt}\n\n{json_instr}"})
+        else:
+            messages.append({"role": "user", "content": prompt})
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+        }
+        payload = {
+            "model": self.model,
+            "messages": messages,
+            "temperature": temperature,
+        }
+        try:
+            resp = requests.post(
+                f"{self.base_url}/chat/completions",
+                headers=headers,
+                json=payload,
+                timeout=(10, 60),
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            text = (data.get("choices", [{}])[0].get("message", {}).get("content", "")).strip()
+        except requests.RequestException as e:
+            raise GeminiError(f"OpenRouter API call failed: {e}")
+        except Exception as e:
+            raise GeminiError(f"OpenRouter returned an invalid response: {e}") from e
+        return text
 
     def _local_generate(self, prompt, system=None, temperature=0.2, json=False):
         messages = []
