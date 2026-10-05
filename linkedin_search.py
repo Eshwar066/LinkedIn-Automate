@@ -149,6 +149,27 @@ def search_url(keywords, config):
     return "https://www.linkedin.com/jobs/search/?" + urllib.parse.urlencode(params)
 
 
+def build_keywords_with_companies(role, target_companies, max_companies_per_query=10):
+    """Build keywords query with role and batched target companies using OR logic.
+
+    LinkedIn supports boolean OR in keywords. We batch companies to avoid URL length limits.
+    Returns a list of keyword strings, one per batch.
+    """
+    if not target_companies:
+        return [role]
+
+    # Escape special chars for LinkedIn search
+    escaped_companies = [c.replace('"', '\\"') for c in target_companies]
+    batches = []
+    for i in range(0, len(escaped_companies), max_companies_per_query):
+        batch = escaped_companies[i:i + max_companies_per_query]
+        companies_or = " OR ".join(f'"{c}"' for c in batch)
+        # Format: (role) AND (company1 OR company2 OR ...)
+        keywords = f"({role}) AND ({companies_or})"
+        batches.append(keywords)
+    return batches
+
+
 def open_jobs_search(page, keywords, config):
     url = search_url(keywords, config)
     print(f"Opening: {url}")
@@ -230,6 +251,17 @@ def job_context(page):
     }
 
 
+def is_target_company(company_name, target_companies):
+    """Check if the job's company matches any target company (case-insensitive, partial match)."""
+    if not company_name or not target_companies:
+        return False
+    company_lower = company_name.lower()
+    for target in target_companies:
+        if target.lower() in company_lower or company_lower in target.lower():
+            return True
+    return False
+
+
 def already_applied(page):
     for sel in [
         '.jobs-s-apply span:has-text("Applied")',
@@ -251,11 +283,11 @@ def run(config):
     # by the f_TPR/f_AL URL filters, and the applicant cap is enforced below from
     # the details panel, so search on the role alone by default.
     if config.get("keywords_mode", "role") == "template":
-        keywords = config["query_template"].format(
+        base_keywords = config["query_template"].format(
             role=config["role"], applicants=config["applicants"]
         )
     else:
-        keywords = config["role"]
+        base_keywords = config["role"]
 
     max_applicants = int(config.get("applicants") or 0) or None
     max_applications = int(config.get("max_applications", 5))
@@ -272,6 +304,11 @@ def run(config):
     if not os.path.exists("linkedin_state.json"):
         print("linkedin_state.json not found. Run linkedin_login.py first.")
         sys.exit(1)
+
+    # Build keyword batches: if using target companies, split into batches to avoid URL limits
+    use_target = config.get("use_target_companies", False)
+    target_companies = config.get("target_companies", []) if use_target else []
+    keyword_batches = build_keywords_with_companies(base_keywords, target_companies) if use_target else [base_keywords]
 
     with sync_playwright() as p:
         launch_kwargs = {
@@ -297,73 +334,90 @@ def run(config):
         context.add_init_script(STEALTH_SCRIPT)
         page = context.new_page()
 
-        open_jobs_search(page, keywords, config)
-
-        total = hydrate_cards(page)
-        print(f"{total} job card(s) on this page.")
-        if not total:
-            page.screenshot(path="error_no_cards.png", full_page=True)
-            print("No cards found. Saved error_no_cards.png; run dump_page.py to inspect the DOM.")
-
         applied = 0
         skipped = 0
+        total_processed = 0
 
-        for i in range(total):
+        for batch_idx, keywords in enumerate(keyword_batches):
             if applied >= max_applications:
                 break
 
-            cards = job_cards(page)
-            if not cards or i >= cards.count():
-                break
+            print(f"\n=== Search batch {batch_idx + 1}/{len(keyword_batches)} ===")
+            open_jobs_search(page, keywords, config)
 
-            card = cards.nth(i)
-            try:
-                card.scroll_into_view_if_needed()
-                page.wait_for_timeout(500)
-                card.click()
-            except Exception as e:
-                print(f"[{i + 1}] could not open card: {e}")
+            total = hydrate_cards(page)
+            print(f"{total} job card(s) on this page.")
+            if not total:
+                page.screenshot(path=f"error_no_cards_batch{batch_idx}.png", full_page=True)
+                print("No cards found. Saved screenshot; run dump_page.py to inspect the DOM.")
                 continue
 
-            page.wait_for_timeout(2500)
-            ctx = job_context(page)
-            count = applicant_count(page)
-            label = f"{count} applicants" if count is not None else "applicant count unknown"
-            print(f"\n[{i + 1}/{total}] {ctx['title']} @ {ctx['company']} ({label})")
+            for i in range(total):
+                if applied >= max_applications:
+                    break
 
-            if max_applicants and count is not None and count > max_applicants:
-                print(f"  Over the {max_applicants}-applicant cap; skipping.")
-                skipped += 1
-                continue
+                cards = job_cards(page)
+                if not cards or i >= cards.count():
+                    break
 
-            if already_applied(page):
-                print("  Already applied; skipping.")
-                skipped += 1
-                continue
+                card = cards.nth(i)
+                try:
+                    card.scroll_into_view_if_needed()
+                    page.wait_for_timeout(500)
+                    card.click()
+                except Exception as e:
+                    print(f"[{total_processed + i + 1}] could not open card: {e}")
+                    continue
 
-            if not click_easy_apply(page, timeout=8000):
-                print("  No Easy Apply button; skipping.")
-                skipped += 1
-                continue
+                page.wait_for_timeout(2500)
+                ctx = job_context(page)
+                count = applicant_count(page)
+                label = f"{count} applicants" if count is not None else "applicant count unknown"
+                print(f"\n[{total_processed + i + 1}/{total_processed + total}] {ctx['title']} @ {ctx['company']} ({label})")
 
-            try:
-                sent = apply_to_current_job(page, gemini, profile, ctx, store=store)
-            except GeminiError:
-                raise
-            except Exception as e:
-                print(f"  [error] {e}")
-                page.screenshot(path=f"error_apply_{i + 1}.png")
-                sent = False
+                # When using target companies in search, we still verify (defense in depth)
+                if use_target and target_companies and not is_target_company(ctx['company'], target_companies):
+                    print(f"  Company not in target list; skipping.")
+                    skipped += 1
+                    continue
 
-            if sent:
-                applied += 1
-                print(f"  Applied ({applied}/{max_applications}).")
-            else:
-                skipped += 1
-                print("  Not submitted; moving on.")
-                dismiss_modal(page)
+                if max_applicants and count is not None and count > max_applicants:
+                    print(f"  Over the {max_applicants}-applicant cap; skipping.")
+                    skipped += 1
+                    continue
 
-            page.wait_for_timeout(2000)
+                if already_applied(page):
+                    print("  Already applied; skipping.")
+                    skipped += 1
+                    continue
+
+                if not click_easy_apply(page, timeout=8000):
+                    print("  No Easy Apply button; skipping.")
+                    skipped += 1
+                    continue
+
+                try:
+                    sent = apply_to_current_job(page, gemini, profile, ctx, store=store)
+                except GeminiError:
+                    raise
+                except Exception as e:
+                    print(f"  [error] {e}")
+                    page.screenshot(path=f"error_apply_{total_processed + i + 1}.png")
+                    sent = False
+
+                if sent:
+                    applied += 1
+                    print(f"  Applied ({applied}/{max_applications}).")
+                else:
+                    skipped += 1
+                    print("  Not submitted; moving on.")
+                    dismiss_modal(page)
+
+                page.wait_for_timeout(2000)
+
+            total_processed += total
+
+        print(f"\nDone. Applied to {applied} job(s), skipped {skipped}.")
 
         print(f"\nDone. Applied to {applied} job(s), skipped {skipped}.")
         context.close()
